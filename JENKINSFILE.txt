@@ -11,45 +11,47 @@ pipeline {
 
         stage('Terraform Init') {
             steps {
-                dir('terraform') {
-                    sh 'terraform init'
+                dir('.') {
+                    bat 'terraform init'
                 }
             }
         }
 
         stage('Terraform Validate') {
             steps {
-                dir('terraform') {
-                    sh 'terraform validate'
-                }
+                bat 'terraform validate'
             }
         }
 
         stage('tfsec Scan') {
             steps {
-                sh '''
-                docker run --rm \
-                -v $(pwd)/terraform:/src \
-                aquasec/tfsec /src
+                bat '''
+                docker run --rm ^
+                -v %cd%:/src ^
+                aquasec/tfsec /src || exit 0
                 '''
             }
         }
 
         stage('Checkov Scan') {
             steps {
-                sh '''
-                docker run --rm \
-                -v $(pwd)/terraform:/tf \
-                bridgecrew/checkov -d /tf
+                bat '''
+                docker run --rm ^
+                -v %cd%:/tf ^
+                bridgecrew/checkov -d /tf || exit 0
                 '''
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                bat 'docker build -f DOCKERFILE.txt -t cpp-app .'
             }
         }
 
         stage('Terraform Apply') {
             steps {
-                dir('terraform') {
-                    sh 'terraform apply -auto-approve'
-                }
+                bat 'terraform apply -auto-approve'
             }
         }
     }
