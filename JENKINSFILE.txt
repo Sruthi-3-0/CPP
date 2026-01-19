@@ -1,0 +1,56 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform init'
+                }
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('tfsec Scan') {
+            steps {
+                sh '''
+                docker run --rm \
+                -v $(pwd)/terraform:/src \
+                aquasec/tfsec /src
+                '''
+            }
+        }
+
+        stage('Checkov Scan') {
+            steps {
+                sh '''
+                docker run --rm \
+                -v $(pwd)/terraform:/tf \
+                bridgecrew/checkov -d /tf
+                '''
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform apply -auto-approve'
+                }
+            }
+        }
+    }
+}

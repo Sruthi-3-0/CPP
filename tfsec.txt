@@ -1,0 +1,3 @@
+docker run --rm \
+-v $(pwd)/terraform:/src \
+aquasec/tfsec /src
